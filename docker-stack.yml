@@ -1,0 +1,64 @@
+version: "3"
+
+services:
+
+  # traefik
+  reverse-proxy:
+    image: traefik
+    ports:
+      - "80:80"
+      - "8080:8080"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: on-failure
+      placement:
+        constraints:
+          - node.role == manager
+
+  # mongo
+  mongo:
+    image: mongo:latest
+    ports:
+      - 27017:27017
+    volumes:
+      - /data/db:/data/db
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: on-failure
+
+
+  # node/mongo
+  app:
+    image: node:alpine
+    build: .
+    volumes:
+      - .:/app
+    depends_on:
+      - mongo
+    environment:
+      NODE_ENV: development
+    ports:
+      - "3000:3000"
+    labels:
+     # traefik.backend: app
+      - "traefik.frontend.rule=PathPrefixStrip:/api"
+      - "traefik.port=3000"
+    deploy:
+      replicas: 2
+      restart_policy:
+        condition: on-failure
+
+ # client
+  client:
+    image: vtcs2304s19/blabber-client
+    environment:
+      SERVICE_NAME: app
+      API_PORT: 3000
+    deploy:
+      replicas: 2
+      restart_policy:
+        condition: on-failure

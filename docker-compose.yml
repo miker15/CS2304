@@ -1,0 +1,45 @@
+version: '3'
+
+#traefik
+services:
+  reverse-proxy:
+    image: traefik
+    command: --api --docker
+    ports:
+      - "80:80"
+      - "8080:8080"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+
+  # mongo
+  mongo:
+    image: mongo:latest
+    ports:
+      - 27017:27017
+    volumes:
+      - /data/db:/data/db
+    
+
+  # node/mongo
+  app:
+    image: node:alpine
+    build: .
+    volumes:
+      - .:/app
+    depends_on:
+      - mongo
+    environment:
+      NODE_ENV: development
+    ports:
+      - "3000:3000"
+    labels:
+     # traefik.backend: app
+      - "traefik.frontend.rule=PathPrefixStrip:/api"
+      - "traefik.port=3000"
+  
+  # client
+  client:
+    image: vtcs2304s19/blabber-client
+    environment:
+      SERVICE_NAME: app
+      API_PORT: 3000
