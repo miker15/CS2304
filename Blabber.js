@@ -29,10 +29,31 @@ mongo.connection.once("open", function() {
 //keeps track of id
 var id = 1;
 
-// Metrics endpoint
+//custom counter
+var blabCounter = new promC.counter({
+  name: "total_blabs_created_count",
+  help: "counts the number of blabs that have been created",
+  buckets: [0.1, 5, 15, 50, 100, 200, 300, 400, 500]
+});
+
+//https duration
+const httpRequestDurationMicroseconds = new promC.Histogram({
+  name: "http_request_duration_ms",
+  help: "Duration of HTTP requests in ms",
+  labelNames: ["route"],
+  // buckets for response time from 0.1ms to 500ms
+  buckets: [0.1, 5, 15, 50, 100, 200, 300, 400, 500]
+});
+
+// After each response
+httpRequestDurationMicroseconds
+  .labels(req.route.path)
+  .observe(responseTimeInMs);
+
+// Metrics endpoint for prometheus
 app.get("/metrics", (req, res) => {
-  res.set("Content-Type", Prometheus.register.contentType);
-  res.end(Prometheus.register.metrics());
+  res.set("Content-Type", promC.register.contentType);
+  res.end(promC.register.metrics());
 });
 
 //functions
