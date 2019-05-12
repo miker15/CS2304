@@ -66,6 +66,8 @@ services:
       restart_policy:
         condition: on-failure
 
+volumes:
+  mongo-db:
 secrets:
   mongodburl:
     file: mongourl.txt

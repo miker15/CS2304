@@ -1,5 +1,6 @@
 const express = require("express");
 var mongo = require("mongoose");
+var file = require("fs");
 var bodyParser = require("body-parser");
 var user = require("./user.js");
 var promB = require("express-prom-bundle");
@@ -27,26 +28,6 @@ var blabCounter = new promC.counter({
   buckets: [0.1, 5, 15, 50, 100, 200, 300, 400, 500]
 });
 
-//https duration
-const httpRequestDurationMicroseconds = new promC.Histogram({
-  name: "http_request_duration_ms",
-  help: "Duration of HTTP requests in ms",
-  labelNames: ["route"],
-  // buckets for response time from 0.1ms to 500ms
-  buckets: [0.1, 5, 15, 50, 100, 200, 300, 400, 500]
-});
-
-// After each response
-httpRequestDurationMicroseconds
-  .labels(req.route.path)
-  .observe(responseTimeInMs);
-
-// Metrics endpoint for prometheus
-app.get("/metrics", (req, res) => {
-  res.set("Content-Type", promC.register.contentType);
-  res.end(promC.register.metrics());
-});
-
 app.use(bodyParser.json());
 
 app.get("/", (req, res) => {
@@ -54,10 +35,14 @@ app.get("/", (req, res) => {
 });
 app.listen(3000, () => console.log("listening on port 3000"));
 
+var mongourl = file
+  .readFileSync("/run/secrets/" + process.env.DB_PASSWORD_FILE, "utf8")
+  .trim();
+
 //mongo connection
 //waittime start set amount of time. calling connect when its not open yet
 setTimeout(function() {
-  mongo.connect("mongodb://mongo:127.0.0.1");
+  mongo.connect(mongourl);
 }, 2000);
 mongo.connection.on(
   "error",
