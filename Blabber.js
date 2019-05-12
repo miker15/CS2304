@@ -7,27 +7,18 @@ var promC = requrre("prom-client");
 
 //establish app
 const app = express();
-app.use(bodyParser.json());
-app.get("/", (req, res) => {
-  res.send("Blabber");
-});
-app.listen(3000, () => console.log("listening on port 3000"));
 
-//mongo connection
-//waittime start set amount of time. calling connect when its not open yet
-setTimeout(function() {
-  mongo.connect("mongodb://mongo:127.0.0.1");
-}, 2000);
-mongo.connection.on(
-  "error",
-  console.error.bind(console, "MongoDB connection error")
-);
-mongo.connection.once("open", function() {
-  console.log("MongoDB open");
+//prometheus bundle
+const bundle = promB({
+  includeMethod: true,
+  promC: {
+    collectDefaultMetrics: {
+      timeout: 1000
+    }
+  }
 });
 
-//keeps track of id
-var id = 1;
+app.use(bundle);
 
 //custom counter
 var blabCounter = new promC.counter({
@@ -55,6 +46,29 @@ app.get("/metrics", (req, res) => {
   res.set("Content-Type", promC.register.contentType);
   res.end(promC.register.metrics());
 });
+
+app.use(bodyParser.json());
+
+app.get("/", (req, res) => {
+  res.send("Blabber");
+});
+app.listen(3000, () => console.log("listening on port 3000"));
+
+//mongo connection
+//waittime start set amount of time. calling connect when its not open yet
+setTimeout(function() {
+  mongo.connect("mongodb://mongo:127.0.0.1");
+}, 2000);
+mongo.connection.on(
+  "error",
+  console.error.bind(console, "MongoDB connection error")
+);
+mongo.connection.once("open", function() {
+  console.log("MongoDB open");
+});
+
+//keeps track of id
+var id = 1;
 
 //functions
 //post function for new user

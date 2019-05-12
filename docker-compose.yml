@@ -1,4 +1,4 @@
-version: '3'
+version: "3"
 
 #traefik
 services:
@@ -10,6 +10,8 @@ services:
       - "8080:8080"
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
+    labels:
+      - "traefik.port=8080"
 
   # mongo
   mongo:
@@ -18,7 +20,6 @@ services:
       - 27017:27017
     volumes:
       - /data/db:/data/db
-    
 
   # node/mongo
   app:
@@ -30,16 +31,27 @@ services:
       - mongo
     environment:
       NODE_ENV: development
+      DB_PASSWORD_FILE: mongodburl
     ports:
       - "3000:3000"
     labels:
-     # traefik.backend: app
+      - "traefik.backend=api.localhost"
       - "traefik.frontend.rule=PathPrefixStrip:/api"
       - "traefik.port=3000"
+    read_only: true
+    secrets: -mongodburl
   
+  prometheus:
+    image: prom/prometheus
+    volumes
+
   # client
   client:
     image: vtcs2304s19/blabber-client
     environment:
       SERVICE_NAME: app
       API_PORT: 3000
+
+secrets:
+  mongodburl:
+    file: mongourl.txt
